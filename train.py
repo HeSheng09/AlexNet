@@ -124,9 +124,9 @@ if __name__ == '__main__':
             rate = (step + 1) / len(train_loader)
             a = "*" * int(rate * 50)
             b = "." * int((1 - rate) * 50)
-            print("\rtrain loss: {:^5.2f}%[{}->{}]{:.3f}".format(rate * 100, a, b, loss), end="")
-        print()
-        print(time.perf_counter() - t1)
+            # print("\rtrain loss: {:^5.2f}%[{}->{}]{:.3f}".format(rate * 100, a, b, loss), end="")
+        # print()
+        print("[epoch {}] time cost on training: {} s.".format(epoch+1,time.perf_counter() - t1))
 
         # validate
         net.eval()
@@ -140,8 +140,10 @@ if __name__ == '__main__':
             val_accurate = acc / (len(val_loader) * args.batch_size)
             if val_accurate > best_acc:
                 best_acc = val_accurate
-                torch.save(net.state_dict(), checkpoints_path())
-            print('[epoch %d] train_loss: %.3f  test_accuracy: %.3f' %
-                  (epoch + 1, running_loss / step, val_accurate))
+                save_path=checkpoints_path()
+                torch.save(net.state_dict(), save_path)
+                print('train_loss: {:.3f}  test_accuracy: {:.3f} \ncheckpoint saved at: {}\n'.format(running_loss/step,val_accurate,save_path))
+            else:
+                print('train_loss: {:.3f}  test_accuracy: {:.3f} \ncheckpoint saved at: {}\n'.format(running_loss/step,val_accurate,"none"))
 
     print('Finished Training')
