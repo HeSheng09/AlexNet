@@ -6,6 +6,7 @@ import torch.optim as optim
 import os
 import time
 import argparse
+import sys
 
 
 def parse_args():
@@ -28,6 +29,15 @@ def parse_args():
     parser.add_argument('--lr', dest='lr',
                         help='learning rate',
                         default=0.0002, type=float)
+    parser.add_argument('--pretrained', dest='pretrained',
+                        help="which pretrained model to be load",
+                        default='none', type=str)
+    parser.add_argument('--dataset', dest='dataset',
+                        help="dataset used",
+                        default='CIFAR10', type=str)
+    parser.add_argument('--cuda',dest='cuda',
+                        help="whether use cuda",
+                        default=True, type=bool)
     args = parser.parse_args()
     return args
 
@@ -39,11 +49,7 @@ def checkpoints_path():
 
 classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-print(device)
-
 data_root = os.path.abspath(os.path.join(os.getcwd(), "data"))
-pretrained_path = os.path.abspath(os.path.join(os.getcwd(), "checkpoints/AlexNet202011260351.pth"))
 
 data_transform = {
     "train": transforms.Compose([transforms.RandomResizedCrop(224),
@@ -60,12 +66,39 @@ if __name__ == '__main__':
     print('Called with args:')
     print(args)
 
-    train_set = datasets.CIFAR10(root=data_root, train=True, download=True, transform=data_transform['train'])
-    train_loader = torch.utils.data.DataLoader(train_set, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
-    val_set = datasets.CIFAR10(root=data_root, train=False, download=True, transform=data_transform['val'])
-    val_loader = torch.utils.data.DataLoader(val_set, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
+    if args.cuda:
+        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    else:
+        device = torch.device("cpu")
+    print(device)
 
-    net = alexnet(True, pretrained_path, num_classes=args.num_classes)
+    if args.dataset == 'CIFAR10':
+        train_set = datasets.CIFAR10(root=data_root, train=True, download=True, transform=data_transform['train'])
+        train_loader = torch.utils.data.DataLoader(train_set, batch_size=args.batch_size, shuffle=True,
+                                                   num_workers=args.num_workers)
+        val_set = datasets.CIFAR10(root=data_root, train=False, download=True, transform=data_transform['val'])
+        val_loader = torch.utils.data.DataLoader(val_set, batch_size=args.batch_size, shuffle=True,
+                                                 num_workers=args.num_workers)
+    elif args.dataset == 'CIFAR100':
+        train_set = datasets.CIFAR100(root=data_root, train=True, download=True, transform=data_transform['train'])
+        train_loader = torch.utils.data.DataLoader(train_set, batch_size=args.batch_size, shuffle=True,
+                                                   num_workers=args.num_workers)
+        val_set = datasets.CIFAR100(root=data_root, train=False, download=True, transform=data_transform['val'])
+        val_loader = torch.utils.data.DataLoader(val_set, batch_size=args.batch_size, shuffle=True,
+                                                 num_workers=args.num_workers)
+    else:
+        print("[error] invalid dataset!")
+        sys.exit(1)
+
+    if args.pretrained == 'None':
+        net = alexnet(pretrained=False)
+    elif args.pretrained == 'url_model':
+        net = alexnet(pretrained=True)
+    else:
+        pretrained_path = os.path.abspath(os.path.join(os.getcwd(), args.pretrained))
+        net = alexnet(pretrained=True, pth_path=pretrained_path)
+
+    net.classifier[6] = nn.Linear(4096, args.num_classes)
     net.to(device)
 
     loss_function = nn.CrossEntropyLoss()
@@ -104,7 +137,7 @@ if __name__ == '__main__':
                 outputs = net(val_images.to(device))
                 predict_y = torch.max(outputs, dim=1)[1]
                 acc += (predict_y == val_labels.to(device)).sum().item()
-            val_accurate = acc / (len(val_loader)*args.batch_size)
+            val_accurate = acc / (len(val_loader) * args.batch_size)
             if val_accurate > best_acc:
                 best_acc = val_accurate
                 torch.save(net.state_dict(), checkpoints_path())

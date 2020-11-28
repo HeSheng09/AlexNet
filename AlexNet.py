@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from torchvision.models.utils import load_state_dict_from_url
 
 
 __all__ = ['AlexNet', 'alexnet']
@@ -59,5 +60,8 @@ def alexnet(pretrained=False, pth_path=None, **kwargs):
     model = AlexNet(**kwargs)
     if pretrained and pth_path:
         state_dict = torch.load(pth_path)
+        model.load_state_dict(state_dict)
+    elif pretrained and pth_path is None:
+        state_dict = load_state_dict_from_url(model_urls['alexnet'], progress=True)
         model.load_state_dict(state_dict)
     return model
