@@ -43,7 +43,7 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print(device)
 
 data_root = os.path.abspath(os.path.join(os.getcwd(), "data"))
-pretrained_path = os.path.abspath(os.path.join(os.getcwd(), "checkpoints/AlexNet202011252110.pth"))
+pretrained_path = os.path.abspath(os.path.join(os.getcwd(), "checkpoints/AlexNet202011260351.pth"))
 
 data_transform = {
     "train": transforms.Compose([transforms.RandomResizedCrop(224),
@@ -60,9 +60,9 @@ if __name__ == '__main__':
     print('Called with args:')
     print(args)
 
-    train_set = datasets.CIFAR10(root=data_root, train=True, download=False, transform=data_transform['train'])
+    train_set = datasets.CIFAR10(root=data_root, train=True, download=True, transform=data_transform['train'])
     train_loader = torch.utils.data.DataLoader(train_set, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
-    val_set = datasets.CIFAR10(root=data_root, train=False, download=False, transform=data_transform['val'])
+    val_set = datasets.CIFAR10(root=data_root, train=False, download=True, transform=data_transform['val'])
     val_loader = torch.utils.data.DataLoader(val_set, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
 
     net = alexnet(True, pretrained_path, num_classes=args.num_classes)
